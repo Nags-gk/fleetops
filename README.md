@@ -76,6 +76,15 @@ cd infra && npm ci && npm test                # 5 CDK assertion tests on the syn
 
 CI runs all of the above on every push, re-scores the detector, synthesizes the stack and publishes the dashboard.
 
+## Live deployment
+
+Deployed with `./deploy.sh` to us-east-2 (AWS free plan). The API is
+`https://i5nmbvd3u4.execute-api.us-east-2.amazonaws.com`; watch it at
+[nags-gk.github.io/fleetops/?api=…](https://nags-gk.github.io/fleetops/?api=https://i5nmbvd3u4.execute-api.us-east-2.amazonaws.com).
+
+A 12-minute run of `./load.sh 30 12` (30 simulated robots, 9 injected faults) against the live stack:
+**9/9 faults detected with zero false incidents**. The dead-letter queue stayed empty and all four alarms stayed OK.
+
 ## Deploy to your AWS account
 
 ```bash
@@ -85,7 +94,9 @@ CI runs all of the above on every push, re-scores the detector, synthesizes the 
 ```
 
 You can also run the **Deploy to AWS** GitHub Actions workflow, using an OIDC role or access-key secrets.
-Confirm the SNS email subscription to receive pages. An optional Gemini API key (`./deploy.sh email key`) turns on LLM triage.
+Confirm the SNS email subscription to receive pages. If you signed in with `aws login`, export the
+session first (`eval "$(aws configure export-credentials --format env)"`), since the pinned CDK CLI
+does not read that credential type directly. An optional Gemini API key (`./deploy.sh email key`) turns on LLM triage.
 
 ## API
 

@@ -17,10 +17,10 @@ npm ci --no-audit --no-fund
 npx tsc
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 REGION="${AWS_REGION:-$(aws configure get region || echo us-east-1)}"
-npx cdk bootstrap "aws://$ACCOUNT/$REGION"
 ARGS=(-c "ingestKey=$KEY")
 [[ -n "$EMAIL" ]] && ARGS+=(-c "alertEmail=$EMAIL")
 [[ -n "$GEMINI" ]] && ARGS+=(-c "geminiKey=$GEMINI")
+npx cdk bootstrap "aws://$ACCOUNT/$REGION" "${ARGS[@]}"
 npx cdk deploy FleetOps --require-approval never --outputs-file ../cdk-outputs.json "${ARGS[@]}"
 cd ..
 API="$(python3 -c 'import json;print(json.load(open("cdk-outputs.json"))["FleetOps"]["ApiUrl"])')"

@@ -47,9 +47,9 @@ jobs:
           npm ci
           npx tsc
           ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-          npx cdk bootstrap aws://$ACCOUNT/${{ inputs.region }}
           ARGS="-c ingestKey=${{ secrets.INGEST_KEY }}"
           [ -n "${{ secrets.ALERT_EMAIL }}" ] && ARGS="$ARGS -c alertEmail=${{ secrets.ALERT_EMAIL }}"
           [ -n "${{ secrets.GEMINI_API_KEY }}" ] && ARGS="$ARGS -c geminiKey=${{ secrets.GEMINI_API_KEY }}"
+          npx cdk bootstrap aws://$ACCOUNT/${{ inputs.region }} $ARGS
           npx cdk deploy FleetOps --require-approval never --outputs-file outputs.json $ARGS
           cat outputs.json
