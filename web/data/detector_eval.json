@@ -1,0 +1,28 @@
+{
+  "robots" : 200,
+  "simulated_minutes" : 120,
+  "heartbeats" : 1440000,
+  "injected_faults" : 61,
+  "detected_faults" : 61,
+  "recall" : 1.0,
+  "recall_by_fault" : {
+    "BATTERY_DRAIN" : "9/9",
+    "BEARING_WEAR" : "9/9",
+    "LIDAR_FAULT" : "19/19",
+    "OVERHEAT" : "10/10",
+    "STUCK" : "14/14"
+  },
+  "detection_latency_s_median" : 20.0,
+  "detection_latency_s_p95" : 114.0,
+  "false_positive_incidents" : 4,
+  "false_positives_per_robot_hour" : 0.01,
+  "false_positives_by_kind" : {
+    "MOTOR_TEMP_DRIFT" : 4
+  },
+  "false_pages" : 0,
+  "raw_anomalies" : 8025,
+  "incidents_opened" : 82,
+  "pages_sent" : 52,
+  "alert_dedup_ratio" : 97.86585365853658,
+  "processing_heartbeats_per_s_single_thread" : 154845
+}

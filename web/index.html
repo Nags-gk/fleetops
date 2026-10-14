@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FleetOps: robot fleet operations console</title>
+<meta name="description" content="Serverless robot-fleet telemetry on AWS: SQS FIFO, Lambda (Java 21), DynamoDB, CUSUM anomaly detection, SNS paging and RAG on-call triage.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap row">
+    <strong class="mark">FleetOps</strong>
+    <span id="mode" class="mode">Loading…</span>
+    <nav><a href="#eval">Detector results</a><a href="#deploy">Run it on AWS</a><a href="https://github.com/Nags-gk/fleetops">Source</a></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="console">
+    <div class="kpis" aria-live="polite">
+      <div><span id="kRobots">0</span><small>robots reporting</small></div>
+      <div><span id="kOffline">0</span><small>offline or faulted</small></div>
+      <div><span id="kBattery">0%</span><small>mean battery</small></div>
+      <div class="hot"><span id="kOpen">0</span><small>open incidents</small></div>
+    </div>
+
+    <div class="grid">
+      <div class="floor">
+        <div class="floor-head">
+          <h1>Floor SIM1</h1>
+          <div class="replay" id="replayCtl">
+            <button id="play" type="button">Pause</button>
+            <input id="scrub" type="range" min="0" max="119" value="0" aria-label="Replay position">
+            <output id="clock">00:00</output>
+          </div>
+        </div>
+        <canvas id="map" width="800" height="520" aria-label="Robot positions on the floor"></canvas>
+        <ul class="legend">
+          <li><i style="--c:var(--moving)"></i>Moving</li>
+          <li><i style="--c:var(--lifting)"></i>Lifting a pod</li>
+          <li><i style="--c:var(--idle)"></i>Idle</li>
+          <li><i style="--c:var(--charging)"></i>Charging</li>
+          <li><i class="ring"></i>Robot with an open incident</li>
+        </ul>
+      </div>
+
+      <aside class="feed">
+        <h2>Incidents</h2>
+        <p class="sub">New SEV1 and SEV2 incidents page on-call through SNS. SEV3 opens a ticket only. Repeats of an open incident are folded into it.</p>
+        <ol id="incidents"></ol>
+      </aside>
+    </div>
+
+    <section id="detail" class="detail" hidden>
+      <div class="detail-head">
+        <h2 id="dTitle"></h2>
+        <button id="dClose" type="button">Close</button>
+      </div>
+      <p id="dMeta" class="sub"></p>
+      <h3>Triage from the on-call assistant</h3>
+      <pre id="dTriage"></pre>
+      <button id="dAsk" type="button" hidden>Ask the assistant again</button>
+    </section>
+  </section>
+
+  <section id="eval" class="eval">
+    <h2>How well the detector works</h2>
+    <p class="sub" id="evalNote"></p>
+    <table id="evalTable"><thead><tr><th>Injected fault</th><th>Detected</th></tr></thead><tbody></tbody></table>
+    <dl class="facts" id="evalFacts"></dl>
+  </section>
+
+  <section id="deploy" class="deploy">
+    <h2>Run it on your own AWS account</h2>
+    <p>The whole backend is one AWS CDK stack: API Gateway, three Java 21 Lambdas, an SQS FIFO queue with a dead-letter queue, three DynamoDB tables, SNS, CloudWatch alarms and a dashboard, plus a $5 budget alert. At demo scale it fits in the AWS free tier.</p>
+    <ol>
+      <li>Run <code>./deploy.sh you@example.com</code>. It builds, bootstraps CDK and prints your API URL.</li>
+      <li>Stream a simulated fleet into it with <code>./load.sh</code>.</li>
+      <li>Open this page with <code>?api=&lt;your API URL&gt;</code> to watch the live fleet instead of the replay.</li>
+    </ol>
+  </section>
+</main>
+<footer class="wrap foot">Built by Nagaraj Gireppa Kanni. The replay is a recorded 20-minute simulated shift with faults injected; it is not production data.</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

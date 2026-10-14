@@ -1,0 +1,55 @@
+name: Deploy to AWS
+
+# Manual. Add repository secrets first:
+#   AWS_DEPLOY_ROLE_ARN  (preferred, GitHub OIDC role)  or  AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+#   INGEST_KEY           shared secret robots send as x-fleet-key
+#   ALERT_EMAIL          (optional) on-call email for pages, alarms and the $5 budget alert
+#   GEMINI_API_KEY       (optional) enables LLM triage
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: AWS region
+        default: us-east-1
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: aws
+    env:
+      HAS_ROLE: ${{ secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: corretto, java-version: "21", cache: maven }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: AWS credentials (OIDC role)
+        if: env.HAS_ROLE == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ inputs.region }}
+      - name: AWS credentials (access keys)
+        if: env.HAS_ROLE != 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.region }}
+      - run: mvn -B -q package -DskipTests
+      - working-directory: infra
+        run: |
+          npm ci
+          npx tsc
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          npx cdk bootstrap aws://$ACCOUNT/${{ inputs.region }}
+          ARGS="-c ingestKey=${{ secrets.INGEST_KEY }}"
+          [ -n "${{ secrets.ALERT_EMAIL }}" ] && ARGS="$ARGS -c alertEmail=${{ secrets.ALERT_EMAIL }}"
+          [ -n "${{ secrets.GEMINI_API_KEY }}" ] && ARGS="$ARGS -c geminiKey=${{ secrets.GEMINI_API_KEY }}"
+          npx cdk deploy FleetOps --require-approval never --outputs-file outputs.json $ARGS
+          cat outputs.json

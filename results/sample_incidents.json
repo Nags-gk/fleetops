@@ -1,0 +1,133 @@
+[ {
+  "id" : "3b82e123-1dcb-4970-84a7-702b84c2881c",
+  "robotId" : "DU-0132",
+  "kind" : "MOTOR_OVERTEMP",
+  "severity" : "SEV1",
+  "status" : "OPEN",
+  "detail" : "motor 90.0 C exceeds 85 C limit",
+  "openedAt" : 1760006844000,
+  "lastSeenAt" : 1760007021000,
+  "occurrences" : 178,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## MOTOR_OVERTEMP\nSeverity SEV1. A drive motor has crossed the 85 C hard limit and the unit may derate or trip its thermal cut-out mid-aisle.\n1. Command the robot to stop and park in the nearest maintenance lane (fleet console: Stop and park).\n2. Check whether it was carrying a pod near the payload limit: an overloaded pod is the most common cause.\n3. Look at the last 10 minutes of motor temperature and wheel current. A rising current with rising temperature points to a dragging brake or failing bearing.\n4. Do not return the unit to service until it is below 60 C and a technician has inspected the brake and the wheel module.\n5. If three or more units on the same floor overheat within an hour, escalate to facilities and check the floor temperature and HVAC.\n\n## MOTOR_TEMP_DRIFT\nSeverity SEV3, ticket only. The motor is running hotter than its own baseline but is still below the hard limit. Usually an early sign of bearing wear, debris in the wheel well, or a slowly dragging brake.\n1. Schedule an inspection at the next charging stop; no immediate action is needed.\n2. Compare wheel current: if current is also drifting up, prioritise a wheel-module inspection.\n3. Clear debris from the wheel well and re-check after 30 minutes of operation."
+}, {
+  "id" : "c06bcc8c-6c68-43ee-a78f-7408656dc87e",
+  "robotId" : "DU-0142",
+  "kind" : "DRIVE_STUCK",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "commanded to move but stationary for 239 s",
+  "openedAt" : 1760006800000,
+  "lastSeenAt" : 1760007019000,
+  "occurrences" : 220,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually.\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs."
+}, {
+  "id" : "6fe23e0f-fc16-43b5-ab1d-5d7db7535c5b",
+  "robotId" : "DU-0007",
+  "kind" : "BATTERY_CRITICAL",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "battery 1.0% while MOVING",
+  "openedAt" : 1760006524000,
+  "lastSeenAt" : 1760006759000,
+  "occurrences" : 236,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## BATTERY_CRITICAL\nSeverity SEV2. Battery is at or below 8% while not charging; the unit may shut down in an aisle.\n1. Send the robot to the nearest charger immediately; the fleet planner should pre-empt its current task.\n2. If the unit is not heading to a charger, check charger availability on the floor. A full or faulted charger bank causes queueing.\n3. Repeated critical-battery events on one unit point to battery degradation: open a battery-health ticket."
+}, {
+  "id" : "2fead43f-f45c-4a3b-85fe-54f398c6d2e4",
+  "robotId" : "DU-0098",
+  "kind" : "MOTOR_OVERTEMP",
+  "severity" : "SEV1",
+  "status" : "OPEN",
+  "detail" : "motor 87.5 C exceeds 85 C limit",
+  "openedAt" : 1760006537000,
+  "lastSeenAt" : 1760006723000,
+  "occurrences" : 187,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## MOTOR_OVERTEMP\nSeverity SEV1. A drive motor has crossed the 85 C hard limit and the unit may derate or trip its thermal cut-out mid-aisle.\n1. Command the robot to stop and park in the nearest maintenance lane (fleet console: Stop and park).\n2. Check whether it was carrying a pod near the payload limit: an overloaded pod is the most common cause.\n3. Look at the last 10 minutes of motor temperature and wheel current. A rising current with rising temperature points to a dragging brake or failing bearing.\n4. Do not return the unit to service until it is below 60 C and a technician has inspected the brake and the wheel module.\n5. If three or more units on the same floor overheat within an hour, escalate to facilities and check the floor temperature and HVAC.\n\n## MOTOR_TEMP_DRIFT\nSeverity SEV3, ticket only. The motor is running hotter than its own baseline but is still below the hard limit. Usually an early sign of bearing wear, debris in the wheel well, or a slowly dragging brake.\n1. Schedule an inspection at the next charging stop; no immediate action is needed.\n2. Compare wheel current: if current is also drifting up, prioritise a wheel-module inspection.\n3. Clear debris from the wheel well and re-check after 30 minutes of operation."
+}, {
+  "id" : "8a2c305b-a83c-436c-aef6-69404dfbcb44",
+  "robotId" : "DU-0046",
+  "kind" : "MOTOR_OVERTEMP",
+  "severity" : "SEV1",
+  "status" : "OPEN",
+  "detail" : "motor 85.3 C exceeds 85 C limit",
+  "openedAt" : 1760006483000,
+  "lastSeenAt" : 1760006663000,
+  "occurrences" : 181,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## MOTOR_OVERTEMP\nSeverity SEV1. A drive motor has crossed the 85 C hard limit and the unit may derate or trip its thermal cut-out mid-aisle.\n1. Command the robot to stop and park in the nearest maintenance lane (fleet console: Stop and park).\n2. Check whether it was carrying a pod near the payload limit: an overloaded pod is the most common cause.\n3. Look at the last 10 minutes of motor temperature and wheel current. A rising current with rising temperature points to a dragging brake or failing bearing.\n4. Do not return the unit to service until it is below 60 C and a technician has inspected the brake and the wheel module.\n5. If three or more units on the same floor overheat within an hour, escalate to facilities and check the floor temperature and HVAC.\n\n## MOTOR_TEMP_DRIFT\nSeverity SEV3, ticket only. The motor is running hotter than its own baseline but is still below the hard limit. Usually an early sign of bearing wear, debris in the wheel well, or a slowly dragging brake.\n1. Schedule an inspection at the next charging stop; no immediate action is needed.\n2. Compare wheel current: if current is also drifting up, prioritise a wheel-module inspection.\n3. Clear debris from the wheel well and re-check after 30 minutes of operation."
+}, {
+  "id" : "8a580018-f530-4b55-8594-b551adf6a199",
+  "robotId" : "DU-0042",
+  "kind" : "ERROR_E101",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "drive reported E101",
+  "openedAt" : 1760006421000,
+  "lastSeenAt" : 1760006658000,
+  "occurrences" : 64,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs.\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually."
+}, {
+  "id" : "65f430cb-387a-4b16-9f89-e1d325bd3759",
+  "robotId" : "DU-0044",
+  "kind" : "ERROR_E101",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "drive reported E101",
+  "openedAt" : 1760006360000,
+  "lastSeenAt" : 1760006595000,
+  "occurrences" : 51,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs.\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually."
+}, {
+  "id" : "bc8376aa-1211-4292-a6c8-fc2feab9481d",
+  "robotId" : "DU-0050",
+  "kind" : "BATTERY_CRITICAL",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "battery 1.8% while MOVING",
+  "openedAt" : 1760006297000,
+  "lastSeenAt" : 1760006487000,
+  "occurrences" : 191,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## BATTERY_CRITICAL\nSeverity SEV2. Battery is at or below 8% while not charging; the unit may shut down in an aisle.\n1. Send the robot to the nearest charger immediately; the fleet planner should pre-empt its current task.\n2. If the unit is not heading to a charger, check charger availability on the floor. A full or faulted charger bank causes queueing.\n3. Repeated critical-battery events on one unit point to battery degradation: open a battery-health ticket."
+}, {
+  "id" : "86e1bd9b-7e27-4dcf-864b-41e75d388864",
+  "robotId" : "DU-0103",
+  "kind" : "DRIVE_STUCK",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "commanded to move but stationary for 239 s",
+  "openedAt" : 1760005900000,
+  "lastSeenAt" : 1760006119000,
+  "occurrences" : 220,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually.\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs."
+}, {
+  "id" : "1f524d99-80e2-4abf-878b-ee3cf44bfb8b",
+  "robotId" : "DU-0081",
+  "kind" : "ERROR_E101",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "drive reported E101",
+  "openedAt" : 1760005883000,
+  "lastSeenAt" : 1760006111000,
+  "occurrences" : 36,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs.\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually."
+}, {
+  "id" : "f707c8e5-7759-432f-81be-e388ef28d5d4",
+  "robotId" : "DU-0113",
+  "kind" : "BATTERY_CRITICAL",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "battery 0.9% while MOVING",
+  "openedAt" : 1760005746000,
+  "lastSeenAt" : 1760005984000,
+  "occurrences" : 239,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## BATTERY_CRITICAL\nSeverity SEV2. Battery is at or below 8% while not charging; the unit may shut down in an aisle.\n1. Send the robot to the nearest charger immediately; the fleet planner should pre-empt its current task.\n2. If the unit is not heading to a charger, check charger availability on the floor. A full or faulted charger bank causes queueing.\n3. Repeated critical-battery events on one unit point to battery degradation: open a battery-health ticket."
+}, {
+  "id" : "ee573fdc-358d-434e-bac0-ec7182879cb8",
+  "robotId" : "DU-0040",
+  "kind" : "DRIVE_STUCK",
+  "severity" : "SEV2",
+  "status" : "OPEN",
+  "detail" : "commanded to move but stationary for 239 s",
+  "openedAt" : 1760005420000,
+  "lastSeenAt" : 1760005639000,
+  "occurrences" : 220,
+  "triage" : "Telemetry: no telemetry in the last 10 minutes\n\nFrom the runbook:\n\n## DRIVE_STUCK\nSeverity SEV2. The robot is commanded to move but has not moved for 20 seconds or more. It blocks an aisle and the fleet routes around it, which costs throughput.\n1. Check for an obstruction at the reported position (fallen item, debris or another unit) using the floor camera.\n2. Check the error codes for a bumper contact (W301) or a lidar fault (E101).\n3. If the area is clear, soft-reset the drive from the fleet console. If it is still stuck, send a floor associate with the amnesty procedure and recover the unit manually.\n\n## ERROR_E101\nLidar or safety-scanner fault. The unit stops for safety. Clean the scanner window, power-cycle the drive, and replace the scanner if the fault recurs."
+} ]
