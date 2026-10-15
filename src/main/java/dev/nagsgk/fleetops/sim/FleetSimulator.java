@@ -241,6 +241,9 @@ public final class FleetSimulator {
         var faults = new ArrayList<Injected>();
         long t0 = System.currentTimeMillis();
         var fleet = fleet(robots, minutes, 7, faults, t0);
+        // A real drive keeps seq monotonic across reboots; the backend drops anything not newer than
+        // the last stored seq. Start from the wall clock so a new run is never mistaken for a replay.
+        fleet.forEach(rb -> rb.seq = t0);
         System.out.println("injected faults: " + Json.write(faults));
         for (int s = 0; s < minutes * 60; s++) {
             long now = System.currentTimeMillis();
