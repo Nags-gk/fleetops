@@ -3,7 +3,7 @@
 **Serverless telemetry, anomaly detection and on-call triage for a warehouse robot fleet on AWS.**
 Java 21 Lambdas, SQS FIFO, DynamoDB, SNS and CloudWatch are defined as one AWS CDK (TypeScript)
 stack. The service includes a streaming CUSUM fault detector and a retrieval-augmented LLM
-assistant that drafts first-response steps from the runbook.
+assistant on Amazon Bedrock that drafts first-response steps from the runbook.
 
 **Dashboard: https://nags-gk.github.io/fleetops/** shows a replay of a simulated shift. Add `?api=<your API URL>` to watch a live deployment.
 
@@ -24,7 +24,7 @@ flowchart LR
   P -->|SEV1/SEV2 only| SNS[SNS on-call]
   G --> QY[Query λ]
   QY --> S & T & N
-  QY -->|RAG: TF-IDF runbook retrieval| LLM[Gemini, optional]
+  QY -->|RAG: TF-IDF runbook retrieval| LLM[Amazon Bedrock<br/>Nova Lite, same Region]
   CW[CloudWatch EMF metrics,<br/>alarms, dashboard, X-Ray] -.-> SNS
 ```
 
@@ -35,7 +35,7 @@ flowchart LR
 | **Fault tolerance** | Partial batch responses retry only failed messages. Poison payloads are dropped and counted. Five failures send a message to a DLQ, which raises an alarm. |
 | **Fault detection** | Hard limits (over-temperature, critical battery, error codes), a stuck-drive timer, and CUSUM drift detection on each robot's own EWMA baseline. Only settled MOVING samples are used, and adaptation pauses during a suspected drift. |
 | **Alert hygiene** | One incident per (robot, kind) while open; repeats increment `occurrences` instead of paging. SEV3 opens a ticket only. |
-| **On-call** | `POST /incidents/{id}/triage` retrieves runbook sections (TF-IDF) and summarises the last 10 minutes of telemetry. It asks an LLM for a grounded plan, with a strict "only recommend runbook actions" prompt, and falls back to the retrieved steps if no model is configured or it times out. |
+| **On-call** | `POST /incidents/{id}/triage` retrieves runbook sections (TF-IDF) and summarises the last 10 minutes of telemetry. It asks Amazon Bedrock (Nova Lite, Converse API) for a plan under a strict "only recommend runbook actions, cite the section" prompt. A grounding guard rejects any answer that cites none of the retrieved sections. The function calls Bedrock with its own IAM role, scoped to one model in one Region, so there is no API key. Triage falls back to the retrieved steps on a timeout, throttling or a rejected answer. |
 | **Observability** | CloudWatch Embedded Metric Format (no PutMetricData calls on the hot path), four alarms wired to the on-call topic, a dashboard, and X-Ray tracing. |
 | **Cost and security** | Free-tier-sized design, API throttling (50 rps, burst 100), a $5 AWS Budget alert, least-privilege IAM grants per function, and a constant-time API-key check. |
 | **Cold starts** | SnapStart on the API-facing functions behind a `live` alias, with no framework ([ADR 0003](docs/adr/0003-lambda-java-snapstart.md)). |
@@ -68,10 +68,10 @@ How the detector got there, as measured:
 ## Tests
 
 ```bash
-mvn verify                                    # 17 unit tests: detector, processor, ingest, API, RAG, regression
+mvn verify                                    # 19 unit tests: detector, processor, ingest, API, RAG + grounding guard, regression
 moto_server -p 5055 &                         # local AWS emulator
 MOTO_ENDPOINT=http://localhost:5055 mvn verify  # + 3 integration tests: real AWS SDK v2 calls
-cd infra && npm ci && npm test                # 5 CDK assertion tests on the synthesized CloudFormation
+cd infra && npm ci && npm test                # 6 CDK assertion tests on the synthesized CloudFormation
 ```
 
 CI runs all of the above on every push, re-scores the detector, synthesizes the stack and publishes the dashboard.
@@ -85,6 +85,9 @@ Deployed with `./deploy.sh` to us-east-2 (AWS free plan). The API is
 A 12-minute run of `./load.sh 30 12` (30 simulated robots, 9 injected faults) against the live stack:
 **9/9 faults detected with zero false incidents**. The dead-letter queue stayed empty and all four alarms stayed OK.
 
+Live triage on those incidents (Bedrock Nova Lite, us-east-2) answered in 0.9–1.6 s. On MOTOR_OVERTEMP, DRIVE_STUCK and ERROR_E101,
+all 9 recommended actions were steps that appear in the cited runbook section.
+
 ## Deploy to your AWS account
 
 ```bash
@@ -96,7 +99,9 @@ A 12-minute run of `./load.sh 30 12` (30 simulated robots, 9 injected faults) ag
 You can also run the **Deploy to AWS** GitHub Actions workflow, using an OIDC role or access-key secrets.
 Confirm the SNS email subscription to receive pages. If you signed in with `aws login`, export the
 session first (`eval "$(aws configure export-credentials --format env)"`), since the pinned CDK CLI
-does not read that credential type directly. An optional Gemini API key (`./deploy.sh email key`) turns on LLM triage.
+does not read that credential type directly. Triage uses Bedrock `amazon.nova-lite-v1:0` by default
+(`-c bedrockModelId=...` to change it, `""` to turn it off). Pick an on-demand model offered in your Region, not a
+cross-Region `us.`/`global.` inference profile. A Gemini API key (`./deploy.sh email key`) is used only when Bedrock is off.
 
 ## API
 

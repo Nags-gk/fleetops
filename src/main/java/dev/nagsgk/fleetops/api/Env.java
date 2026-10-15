@@ -8,7 +8,11 @@ import dev.nagsgk.fleetops.process.ProcessorService;
 import dev.nagsgk.fleetops.queue.SqsTelemetryQueue;
 import dev.nagsgk.fleetops.store.DynamoFleetStore;
 import dev.nagsgk.fleetops.store.FleetStore;
+import dev.nagsgk.fleetops.triage.BedrockClient;
 import dev.nagsgk.fleetops.triage.GeminiClient;
+import dev.nagsgk.fleetops.triage.LlmClient;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import java.time.Duration;
 import dev.nagsgk.fleetops.triage.RunbookIndex;
 import dev.nagsgk.fleetops.triage.TriageService;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
@@ -56,10 +60,23 @@ public final class Env {
         return new ProcessorService(store(), alerter(), new AnomalyDetector(), System::currentTimeMillis);
     }
 
-    public static TriageService triage(FleetStore store) {
+    /** Bedrock when BEDROCK_MODEL_ID is set (preferred: IAM auth, same Region), else Gemini with a key, else none. */
+    static LlmClient llm() {
+        String model = System.getenv("BEDROCK_MODEL_ID");
+        if (model != null && !model.isBlank()) {
+            var brt = configure(BedrockRuntimeClient.builder())
+                    .httpClientBuilder(UrlConnectionHttpClient.builder().socketTimeout(Duration.ofSeconds(9)))
+                    .overrideConfiguration(c -> c.apiCallTimeout(Duration.ofSeconds(10)).retryStrategy(b -> b.maxAttempts(2)))
+                    .build();
+            return new BedrockClient(brt, model);
+        }
         String key = System.getenv("GEMINI_API_KEY");
-        var llm = key == null || key.isBlank() ? null
+        return key == null || key.isBlank() ? null
                 : new GeminiClient(key, System.getenv().getOrDefault("GEMINI_MODEL", "gemini-2.5-flash"));
+    }
+
+    public static TriageService triage(FleetStore store) {
+        var llm = llm();
         return new TriageService(store, RunbookIndex.fromClasspath("/runbooks/drive-units.md"), llm);
     }
 }

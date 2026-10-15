@@ -7,12 +7,12 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { FleetOpsStack } from "../lib/fleetops-stack";
 
-function synth(alertEmail?: string) {
+function synth(alertEmail?: string, extra: Partial<{ bedrockModelId: string }> = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jar-"));
   const jar = path.join(dir, "fake.jar");
   fs.writeFileSync(jar, "x");
   const app = new App();
-  const stack = new FleetOpsStack(app, "T", { ingestKey: "k", alertEmail, jarPath: dir, env: { region: "us-east-1" } });
+  const stack = new FleetOpsStack(app, "T", { ingestKey: "k", alertEmail, jarPath: dir, env: { region: "us-east-2" }, ...extra });
   return Template.fromStack(stack);
 }
 
@@ -45,4 +45,20 @@ test("alarms page on-call, API is throttled, budget only with an email", () => {
   t.hasResourceProperties("AWS::ApiGatewayV2::Stage", { DefaultRouteSettings: { ThrottlingRateLimit: 50, ThrottlingBurstLimit: 100 } });
   t.resourceCountIs("AWS::Budgets::Budget", 0);
   synth("oncall@example.com").resourceCountIs("AWS::Budgets::Budget", 1);
+});
+
+test("triage may invoke exactly one in-Region Bedrock model; empty id disables it", () => {
+  const t = synth();
+  t.hasResourceProperties("AWS::Lambda::Function", {
+    Handler: "dev.nagsgk.fleetops.api.QueryHandler::handleRequest",
+    Environment: { Variables: Match.objectLike({ BEDROCK_MODEL_ID: "amazon.nova-lite-v1:0" }) },
+  });
+  t.hasResourceProperties("AWS::IAM::Policy", {
+    PolicyDocument: { Statement: Match.arrayWith([Match.objectLike({
+      Action: "bedrock:InvokeModel",
+      Resource: { "Fn::Join": ["", ["arn:", { Ref: "AWS::Partition" }, ":bedrock:us-east-2::foundation-model/amazon.nova-lite-v1:0"]] },
+    })]) },
+  });
+  const off = JSON.stringify(synth(undefined, { bedrockModelId: "" }).toJSON());
+  assert.ok(!off.includes("bedrock:InvokeModel") && !off.includes("BEDROCK_MODEL_ID"));
 });

@@ -13,13 +13,20 @@ import * as cw from "aws-cdk-lib/aws-cloudwatch";
 import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as budgets from "aws-cdk-lib/aws-budgets";
+import * as iam from "aws-cdk-lib/aws-iam";
 
 export interface FleetOpsProps extends StackProps {
   /** shared secret robots send in x-fleet-key */
   ingestKey: string;
   /** on-call email for pages, alarms and the budget alert (optional) */
   alertEmail?: string;
-  /** optional Gemini API key for LLM triage; without it triage returns retrieved runbook steps */
+  /**
+   * Bedrock model for LLM triage, invoked in this stack's Region with the function's IAM role.
+   * Must be an in-Region on-demand model (not a cross-Region "us."/"global." inference profile).
+   * Set to "" to disable; triage then returns retrieved runbook steps.
+   */
+  bedrockModelId?: string;
+  /** optional Gemini API key, used only when no Bedrock model is set */
   geminiKey?: string;
   /** path to the shaded Lambda jar */
   jarPath?: string;
@@ -98,11 +105,16 @@ export class FleetOpsStack extends Stack {
       timeout: Duration.seconds(60),
       environment: env,
     });
+    const bedrockModelId = props.bedrockModelId ?? "amazon.nova-lite-v1:0";
     const query = new lambda.Function(this, "Query", {
       ...common,
       handler: "dev.nagsgk.fleetops.api.QueryHandler::handleRequest",
       timeout: Duration.seconds(20),
-      environment: { ...env, ...(props.geminiKey ? { GEMINI_API_KEY: props.geminiKey } : {}) },
+      environment: {
+        ...env,
+        ...(bedrockModelId ? { BEDROCK_MODEL_ID: bedrockModelId } : {}),
+        ...(props.geminiKey ? { GEMINI_API_KEY: props.geminiKey } : {}),
+      },
       snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS,
     });
     processor.addEventSource(new SqsEventSource(queue, { batchSize: 10, reportBatchItemFailures: true }));
@@ -116,6 +128,13 @@ export class FleetOpsStack extends Stack {
     state.grantReadData(query);
     telemetry.grantReadData(query);
     incidents.grantReadWriteData(query);
+    if (bedrockModelId) {
+      // One model, this Region only (Converse is authorised by bedrock:InvokeModel).
+      query.addToRolePolicy(new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: [`arn:${this.partition}:bedrock:${this.region}::foundation-model/${bedrockModelId}`],
+      }));
+    }
 
     const ingestLive = new lambda.Alias(this, "IngestLive", { aliasName: "live", version: ingest.currentVersion });
     const queryLive = new lambda.Alias(this, "QueryLive", { aliasName: "live", version: query.currentVersion });

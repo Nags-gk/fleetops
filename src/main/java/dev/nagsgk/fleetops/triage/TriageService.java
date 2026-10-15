@@ -57,12 +57,25 @@ public final class TriageService {
 
                     Write at most 6 short lines: the most likely cause given the telemetry, then the first
                     three actions. Only recommend actions that appear in the runbook sections above and name
-                    the section you used. If the telemetry contradicts the runbook, say so.
-                    """.formatted(inc.kind(), inc.severity(), inc.robotId(), inc.occurrences(), inc.detail(), telem, runbook);
+                    the section you used by its exact heading (for example %s). If the telemetry contradicts
+                    the runbook, say so.
+                    """.formatted(inc.kind(), inc.severity(), inc.robotId(), inc.occurrences(), inc.detail(), telem, runbook,
+                    titles.isEmpty() ? "MOTOR_OVERTEMP" : titles.get(0));
             var out = llm.complete(prompt);
-            if (out.isPresent()) return new Triage(out.get(), llm.name(), titles);
+            if (out.isPresent() && citesRetrievedSection(out.get(), titles)) return new Triage(out.get(), llm.name(), titles);
+            // An answer that cites none of the retrieved sections is not grounded: do not show it.
+            if (out.isPresent()) return fallback(telem, runbook, titles, "runbook-retrieval (model answer rejected: no runbook citation)");
         }
-        var text = "Telemetry: " + telem + "\n\nFrom the runbook:\n\n" + runbook;
-        return new Triage(text, "runbook-retrieval", titles);
+        return fallback(telem, runbook, titles, "runbook-retrieval");
+    }
+
+    /** Grounding guard: the plan must name at least one runbook section it was actually given. */
+    public static boolean citesRetrievedSection(String answer, List<String> titles) {
+        var a = answer.toUpperCase().replace(' ', '_');
+        return titles.stream().anyMatch(t -> a.contains(t.toUpperCase()));
+    }
+
+    private static Triage fallback(String telem, String runbook, List<String> titles, String source) {
+        return new Triage("Telemetry: " + telem + "\n\nFrom the runbook:\n\n" + runbook, source, titles);
     }
 }

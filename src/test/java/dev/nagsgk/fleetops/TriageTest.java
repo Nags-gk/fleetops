@@ -46,6 +46,31 @@ class TriageTest {
         assertThat(seen.get()).contains("## BATTERY_CRITICAL").contains("Only recommend actions that appear in the runbook");
     }
 
+    static LlmClient answering(String answer) {
+        return new LlmClient() {
+            public Optional<String> complete(String p) {
+                return Optional.of(answer);
+            }
+
+            public String name() {
+                return "fake";
+            }
+        };
+    }
+
+    @Test
+    void rejectsAnUngroundedAnswerThatCitesNoRetrievedSection() {
+        var t = new TriageService(new InMemoryFleetStore(), idx, answering("Reboot the robot and update its firmware.")).triage(inc());
+        assertThat(t.source()).startsWith("runbook-retrieval").contains("rejected");
+        assertThat(t.text()).contains("nearest charger").doesNotContain("firmware");
+    }
+
+    @Test
+    void citationMatchIsCaseAndSpaceInsensitive() {
+        assertThat(TriageService.citesRetrievedSection("see Battery Critical section", java.util.List.of("BATTERY_CRITICAL"))).isTrue();
+        assertThat(TriageService.citesRetrievedSection("see DRIVE_STUCK", java.util.List.of("BATTERY_CRITICAL"))).isFalse();
+    }
+
     @Test
     void fallsBackToRunbookWhenLlmUnavailable() {
         LlmClient down = new LlmClient() {
