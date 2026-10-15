@@ -20,6 +20,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 "Public Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--moving); outline-offset: 2px; }
@@ -29,6 +30,8 @@ a { color: inherit; }
 .mark { font-weight: 800; font-size: 20px; letter-spacing: -0.01em; }
 .mode { font-size: 14px; padding: 3px 10px; border-radius: 999px; border: 1px solid currentColor; opacity: .9; }
 .mode.live { background: var(--charging); color: #fff; border-color: transparent; }
+.mode.idle { background: var(--sev2); color: #fff; border-color: transparent; }
+.live-note { margin: 0 0 8px; padding: 8px 12px; border-radius: 6px; background: var(--bg); font-size: 14px; }
 nav { margin-left: auto; display: flex; gap: 18px; font-weight: 500; }
 nav a { text-decoration: none; }
 nav a:hover { text-decoration: underline; }

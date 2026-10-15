@@ -93,26 +93,42 @@ async function poll() {
     incidents = inc.incidents;
     const now = fleet.generatedAt;
     const robots = fleet.robots.map((h) => [h.robotId, h.x, h.y, now - h.tsMillis > 30_000 ? "OFFLINE" : h.state, h.batteryPct, h.motorTempC]);
+    const lastBeat = Math.max(0, ...fleet.robots.map((h) => h.tsMillis));
+    const idleMs = now - lastBeat;
     const open = incidents.filter((i) => i.status === "OPEN");
     drawMap(robots, new Set(open.map((i) => i.robotId)));
     kpis(robots, open);
     renderFeed(incidents, now);
-    $("#mode").textContent = `Live: ${new URL(api).host}`;
-    $("#mode").classList.add("live");
+    const idle = !fleet.robots.length || idleMs > 30_000;
+    $("#mode").textContent = `Live: ${new URL(api).host}${idle ? " (idle)" : ""}`;
+    $("#mode").classList.toggle("live", !idle);
+    $("#mode").classList.toggle("idle", idle);
+    const note = $("#liveNote");
+    note.hidden = !idle;
+    if (idle) {
+      const ago = fleet.robots.length ? `The last heartbeat arrived ${Math.round(idleMs / 60000)} min ago, so every robot shows as offline at its last position.` : "No robot has reported yet.";
+      note.textContent = `No robots are reporting right now. ${ago} The floor only moves while a fleet (or the simulator, ./load.sh) is streaming telemetry to this API.`;
+    }
   } catch (e) {
     $("#mode").textContent = "Live API unreachable. Check the ?api= URL and its CORS origins.";
   }
 }
 
 function startLive() {
-  $("#replayCtl").hidden = true;
+  $("#scrub").hidden = true;
+  $("#clock").hidden = true;
+  $("#play").addEventListener("click", (e) => {
+    playing = !playing;
+    e.target.textContent = playing ? "Pause" : "Resume";
+    if (playing) poll();
+  });
   $("#dAsk").addEventListener("click", async () => {
     $("#dTriage").textContent = "Asking the assistant…";
     const r = await fetch(`${api}/incidents/${selected.id}/triage`, { method: "POST" }).then((x) => x.json());
     $("#dTriage").textContent = `${r.text}\n\nSource: ${r.source}`;
   });
   poll();
-  setInterval(poll, 5000);
+  setInterval(() => { if (playing) poll(); }, 5000);
 }
 
 async function loadEval() {
