@@ -129,6 +129,11 @@ issues; this release fixes or reduces each one and adds tests that keep them fix
 | 14-day log retention (TL-L03) | Too short to investigate slow abuse | 90 days |
 | One key shared by every robot (TL-S03) | Still true | **Open.** The key now lives in Secrets Manager and can be rotated, but per-device identity (AWS IoT Core with X.509 certificates) is the real fix |
 
+Verified on the live stack after deploying (us-east-2, 2026-10-21): `POST /resolve` and `/triage` return **401** with no key or
+a wrong key and **200** with the operator key; `POST /telemetry` without the new ingest key returns 401; reads stay 200. Each
+attempt appears in CloudWatch as a `fleetops.write` audit record, all three functions keep logs 90 days, and no Lambda holds a
+key in its environment.
+
 The operator key is a single shared secret, so the audit log records *where* a write came from, not *who* made it. The next step is
 per-user sign-in (Cognito with an API Gateway JWT authorizer), which would put an identity on every audit record.
 
