@@ -21,6 +21,9 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import dev.nagsgk.fleetops.auth.SecretKey;
+import dev.nagsgk.fleetops.auth.Secrets;
 
 import java.net.URI;
 
@@ -51,6 +54,20 @@ public final class Env {
         return new IngestService(new SqsTelemetryQueue(sqs, req("QUEUE_URL")));
     }
 
+    /**
+     * Key named by {@code <prefix>_SECRET_ARN} (Secrets Manager, cached 5 minutes), or a
+     * literal {@code <prefix>} value for local runs. Neither set: null, and callers fail closed.
+     */
+    public static SecretKey secretKey(String prefix) {
+        String arn = System.getenv(prefix + "_SECRET_ARN");
+        if (arn != null && !arn.isBlank()) {
+            var sm = configure(SecretsManagerClient.builder()).httpClientBuilder(UrlConnectionHttpClient.builder()).build();
+            return new SecretKey(Secrets.fromSecretsManager(sm, arn), System::currentTimeMillis, 300_000);
+        }
+        String literal = System.getenv(prefix);
+        return literal == null || literal.isBlank() ? null : SecretKey.fixed(literal);
+    }
+
     public static Alerter alerter() {
         var sns = configure(SnsClient.builder()).httpClientBuilder(UrlConnectionHttpClient.builder()).build();
         return new SnsAlerter(sns, req("TOPIC_ARN"));
@@ -72,7 +89,7 @@ public final class Env {
         }
         String key = System.getenv("GEMINI_API_KEY");
         return key == null || key.isBlank() ? null
-                : new GeminiClient(key, System.getenv().getOrDefault("GEMINI_MODEL", "gemini-2.5-flash"));
+                : new GeminiClient(key, System.getenv().getOrDefault("GEMINI_MODEL", "gemini-3.1-flash-lite"));
     }
 
     public static TriageService triage(FleetStore store) {

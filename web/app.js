@@ -123,8 +123,23 @@ function startLive() {
     if (playing) poll();
   });
   $("#dAsk").addEventListener("click", async () => {
+    // Triage writes to the incident and spends model budget, so the API requires an
+    // operator key. It is kept for this tab only (sessionStorage), never in the page.
+    let key = "";
+    try { key = sessionStorage.getItem("fleetopsOperatorKey") || ""; } catch {}
+    if (!key) {
+      key = (prompt("Operator key (x-operator-key). Write actions are restricted to operators.") || "").trim();
+      if (!key) return;
+    }
     $("#dTriage").textContent = "Asking the assistant…";
-    const r = await fetch(`${api}/incidents/${selected.id}/triage`, { method: "POST" }).then((x) => x.json());
+    const res = await fetch(`${api}/incidents/${selected.id}/triage`, { method: "POST", headers: { "x-operator-key": key } });
+    if (res.status === 401) {
+      try { sessionStorage.removeItem("fleetopsOperatorKey"); } catch {}
+      $("#dTriage").textContent = "Operator key rejected. Reading the fleet is public; triage and resolve are operator-only.";
+      return;
+    }
+    try { sessionStorage.setItem("fleetopsOperatorKey", key); } catch {}
+    const r = await res.json();
     $("#dTriage").textContent = `${r.text}\n\nSource: ${r.source}`;
   });
   poll();

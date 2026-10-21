@@ -58,7 +58,7 @@ jobs:
           path: target
       - run: npm ci
       - run: npm test
-      - run: npx cdk synth -c ingestKey=ci-only -q
+      - run: npx cdk synth -q
 
   pages:
     name: Deploy dashboard to GitHub Pages

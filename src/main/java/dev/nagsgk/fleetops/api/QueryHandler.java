@@ -4,13 +4,17 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
+import dev.nagsgk.fleetops.auth.SecretKey;
 import dev.nagsgk.fleetops.model.RobotState;
+import dev.nagsgk.fleetops.util.Json;
 import dev.nagsgk.fleetops.store.FleetStore;
 import dev.nagsgk.fleetops.triage.TriageService;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
@@ -19,9 +23,13 @@ import java.util.function.LongSupplier;
  *   GET  /fleet                      summary + every robot's latest state
  *   GET  /robots/{id}/telemetry      last 10 minutes (or ?since=epochMillis)
  *   GET  /incidents                  newest first
- *   POST /incidents/{id}/triage      RAG triage (cached on the incident)
- *   POST /incidents/{id}/resolve
+ *   POST /incidents/{id}/triage      RAG triage (cached on the incident)    operator key required
+ *   POST /incidents/{id}/resolve                                            operator key required
  * </pre>
+ * Reads are public so the dashboard works without credentials. Writes change incident
+ * state or spend model budget, so they require the {@code x-operator-key} header, which
+ * is checked in constant time against a key held in Secrets Manager. Every write
+ * attempt, allowed or denied, is written to the log as a structured audit record.
  */
 public final class QueryHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
     static final long OFFLINE_AFTER_MS = 30_000;
@@ -29,15 +37,36 @@ public final class QueryHandler implements RequestHandler<APIGatewayV2HTTPEvent,
     private final FleetStore store;
     private final TriageService triage;
     private final LongSupplier clock;
+    private final SecretKey operatorKey;
+    private final Consumer<String> audit;
+
+    static final Set<String> WRITE_ROUTES = Set.of("POST /incidents/{id}/triage", "POST /incidents/{id}/resolve");
 
     public QueryHandler() {
-        this(Env.store(), null, System::currentTimeMillis);
+        this(Env.store(), null, System::currentTimeMillis, Env.secretKey("OPERATOR_KEY"), System.out::println);
     }
 
-    public QueryHandler(FleetStore store, TriageService triage, LongSupplier clock) {
+    public QueryHandler(FleetStore store, TriageService triage, LongSupplier clock, SecretKey operatorKey, Consumer<String> audit) {
         this.store = store;
         this.triage = triage == null ? Env.triage(store) : triage;
         this.clock = clock;
+        this.operatorKey = operatorKey;
+        this.audit = audit;
+    }
+
+    /** Audit record for a write attempt; the presented key is never logged. */
+    private void audit(APIGatewayV2HTTPEvent ev, String route, String id, String outcome) {
+        var http = ev.getRequestContext() == null ? null : ev.getRequestContext().getHttp();
+        var rec = new LinkedHashMap<String, Object>();
+        rec.put("audit", "fleetops.write");
+        rec.put("ts", clock.getAsLong());
+        rec.put("route", route);
+        rec.put("incidentId", id);
+        rec.put("outcome", outcome);
+        rec.put("sourceIp", http == null ? null : http.getSourceIp());
+        rec.put("userAgent", http == null ? null : http.getUserAgent());
+        rec.put("requestId", ev.getRequestContext() == null ? null : ev.getRequestContext().getRequestId());
+        audit.accept(Json.write(rec));
     }
 
     @Override
@@ -45,6 +74,14 @@ public final class QueryHandler implements RequestHandler<APIGatewayV2HTTPEvent,
         String route = ev.getRouteKey() == null ? "" : ev.getRouteKey();
         var p = ev.getPathParameters() == null ? Map.<String, String>of() : ev.getPathParameters();
         var q = ev.getQueryStringParameters() == null ? Map.<String, String>of() : ev.getQueryStringParameters();
+        if (WRITE_ROUTES.contains(route)) {
+            var headers = ev.getHeaders() == null ? Map.<String, String>of() : ev.getHeaders();
+            if (operatorKey == null || !operatorKey.matches(headers.get("x-operator-key"))) {
+                audit(ev, route, p.get("id"), "denied");
+                return Http.error(401, "operator key required for write actions");
+            }
+            audit(ev, route, p.get("id"), "allowed");
+        }
         try {
             return switch (route) {
                 case "GET /fleet" -> Http.json(200, fleet());

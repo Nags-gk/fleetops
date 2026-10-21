@@ -2,15 +2,14 @@ name: Deploy to AWS
 
 # Manual. Add repository secrets first:
 #   AWS_DEPLOY_ROLE_ARN  (preferred, GitHub OIDC role)  or  AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
-#   INGEST_KEY           shared secret robots send as x-fleet-key
 #   ALERT_EMAIL          (optional) on-call email for pages, alarms and the $5 budget alert
-#   GEMINI_API_KEY       (optional) enables LLM triage
+# The ingest and operator keys are generated in AWS Secrets Manager by the stack itself.
 on:
   workflow_dispatch:
     inputs:
       region:
         description: AWS region
-        default: us-east-1
+        default: us-east-2
 
 permissions:
   id-token: write
@@ -47,9 +46,8 @@ jobs:
           npm ci
           npx tsc
           ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-          ARGS="-c ingestKey=${{ secrets.INGEST_KEY }}"
-          [ -n "${{ secrets.ALERT_EMAIL }}" ] && ARGS="$ARGS -c alertEmail=${{ secrets.ALERT_EMAIL }}"
-          [ -n "${{ secrets.GEMINI_API_KEY }}" ] && ARGS="$ARGS -c geminiKey=${{ secrets.GEMINI_API_KEY }}"
+          ARGS=""
+          [ -n "${{ secrets.ALERT_EMAIL }}" ] && ARGS="-c alertEmail=${{ secrets.ALERT_EMAIL }}"
           npx cdk bootstrap aws://$ACCOUNT/${{ inputs.region }} $ARGS
           npx cdk deploy FleetOps --require-approval never --outputs-file outputs.json $ARGS
           cat outputs.json

@@ -5,12 +5,12 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
+import dev.nagsgk.fleetops.auth.SecretKey;
 import dev.nagsgk.fleetops.ingest.IngestService;
 import dev.nagsgk.fleetops.model.Heartbeat;
 import dev.nagsgk.fleetops.util.Json;
 import dev.nagsgk.fleetops.util.Metrics;
 
-import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -19,28 +19,27 @@ import java.util.Map;
 /** POST /telemetry  {"heartbeats":[...]}  (header x-fleet-key required) -> 202 */
 public final class IngestHandler implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
     private final IngestService svc;
-    private final String key;
+    private final SecretKey key;
 
     public IngestHandler() {
-        this(Env.ingest(), System.getenv("INGEST_KEY"));
+        this(Env.ingest(), Env.secretKey("INGEST_KEY"));
     }
 
     public IngestHandler(IngestService svc, String key) {
+        this(svc, key == null ? null : SecretKey.fixed(key));
+    }
+
+    public IngestHandler(IngestService svc, SecretKey key) {
         this.svc = svc;
         this.key = key;
     }
 
     record Body(List<Heartbeat> heartbeats) {}
 
-    static boolean constantTimeEquals(String a, String b) {
-        if (a == null || b == null) return false;
-        return MessageDigest.isEqual(a.getBytes(StandardCharsets.UTF_8), b.getBytes(StandardCharsets.UTF_8));
-    }
-
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent ev, Context ctx) {
         var headers = ev.getHeaders() == null ? Map.<String, String>of() : ev.getHeaders();
-        if (key != null && !constantTimeEquals(key, headers.get("x-fleet-key"))) {
+        if (key == null || !key.matches(headers.get("x-fleet-key"))) {  // fail closed when no key is configured
             return Http.error(401, "missing or invalid x-fleet-key");
         }
         String raw = ev.getBody();

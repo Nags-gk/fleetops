@@ -65,18 +65,19 @@ class IngestAndApiTest {
         proc.handle(moving("B", 1, 91, 3), m);
         var triage = new TriageService(store, RunbookIndex.fromClasspath("/runbooks/drive-units.md"), null);
         long now = 1_000_000L + 6_000;
-        var q = new QueryHandler(store, triage, () -> now);
+        var log = new java.util.ArrayList<String>();
+        var q = new QueryHandler(store, triage, () -> now, dev.nagsgk.fleetops.auth.SecretKey.fixed("op-key"), log::add);
         var fleet = q.handleRequest(APIGatewayV2HTTPEvent.builder().withRouteKey("GET /fleet").build(), null);
         assertThat(fleet.getStatusCode()).isEqualTo(200);
         assertThat(fleet.getBody()).contains("\"robots\":2").contains("\"openIncidents\":1");
         var inc = store.listIncidents(5).get(0);
         var t = q.handleRequest(APIGatewayV2HTTPEvent.builder().withRouteKey("POST /incidents/{id}/triage")
-                .withPathParameters(Map.of("id", inc.id())).build(), null);
+                .withHeaders(Map.of("x-operator-key", "op-key")).withPathParameters(Map.of("id", inc.id())).build(), null);
         assertThat(t.getStatusCode()).isEqualTo(200);
         assertThat(t.getBody()).contains("MOTOR_OVERTEMP").contains("runbook-retrieval");
         assertThat(store.getIncident(inc.id()).orElseThrow().triage()).contains("maintenance lane");
         var r = q.handleRequest(APIGatewayV2HTTPEvent.builder().withRouteKey("POST /incidents/{id}/resolve")
-                .withPathParameters(Map.of("id", inc.id())).build(), null);
+                .withHeaders(Map.of("x-operator-key", "op-key")).withPathParameters(Map.of("id", inc.id())).build(), null);
         assertThat(r.getBody()).contains("RESOLVED");
         assertThat(q.handleRequest(APIGatewayV2HTTPEvent.builder().withRouteKey("GET /nope").build(), null).getStatusCode()).isEqualTo(404);
     }
